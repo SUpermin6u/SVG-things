@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html style="width:1005;height:100%">
+<head>
+	<title>raphael</title>
+    <meta charset="UTF8">
+	<script type="text/javascript" src="raphael.min.js"></script>
+</head>
+<body style="width:1005;height:100%">
+    <h1 style="color:rgb(19, 194, 249);padding-left:170px;font-size:20px">SVG刻度盘
+        <div style="padding-left:100px;">--by szm, based on Raphaeljs</div>
+    </h1>    
+    <div id="holder"></div>
+<script>
+window.onload = function () {
+    var r = Raphael("holder", "100%", "100%"),                
+        R = 60,                                         //内圆半径
+        wR = 80,                                        //外圆半径
+        origin = 100,                                   //圆心坐标
+        initNum = 200,                                  //初始的分数
+        totalNum = 1200,                                //总的分数
+        realDeg = 160,                                  //实际度数
+        totalDeg = 240;                                 //总的度数
+        markCount = 6,                                  //刻度的数目
+        baseColor = "rgb(19, 194, 249)",                //颜色
+        easing = "cubic-bezier(.25,.57,.11,.99)",       //动画函数
+        time = 1800,                                    //动画持续时间
+        rotateDeg = -30,                                //刻度盘旋转的度数
+        transform = ["r", rotateDeg, origin, origin];
+        realDeg = Math.min(realDeg, totalDeg-0.00001);  //确保小于最大度数
+    
+    r.setViewBox(0,0,600,600)
+    drawMarks();
+
+    //带圆角的矩形
+    var radius = 5, width = 50, height = 30, x = 75, y = 140;
+    r.path([["M",x,y+radius],
+        ["A",radius,radius,0,0,1,x+radius,y],
+        ["L",x+width-radius,y],
+        ["A",radius,radius,0,0,1,x+width,y+radius],
+        ["L",x+width,y+height-radius],
+        ["A",radius,radius,0,0,1,x+width-radius,y+height],
+        ["L",x+radius,y+height],
+        ["A",radius,radius,0,0,1,x,y+height-radius],
+        "Z"
+    ]).attr({
+        "stroke":"none",
+        "fill":"rgba(19, 194, 249,.5)"
+    })
+    r.text(x+width/2,y+height/2,"beta").attr({
+        "fill":"rgb(19, 194, 249)",
+        "font-size":22
+    })
+    //绘制文字
+    var txt = r.text(origin, origin, initNum).attr({
+        "font-size":20,
+        "font-weight":"bold",
+        "fill":baseColor
+        //"text-anchor":middle
+    })
+
+    //定制属性:绘制圆弧
+    r.customAttributes.arc = function (value, total, R) {
+        var alpha = totalDeg / total * value,
+            deg = alpha * Math.PI / 180,
+            x = origin - R * Math.cos(deg),
+            y = origin - R * Math.sin(deg),
+            path;
+        if (total == value) {
+            path = [["M", origin-R, origin], ["A", R, R, 0, 1, 1, origin-R, origin-0.00001]];
+        } else {
+            path = [["M", origin-R, origin], ["A", R, R, 0, +(alpha > 180), 1, x, y]];
+        }
+        //更新显示的数字
+        var text = Math.round(value/total*(totalNum-initNum)+initNum);
+        txt.attr({"text":text})
+
+        return {"path": path};
+    };
+
+    //圆弧动画
+    var statusBar = r.path().attr({
+        "stroke":baseColor,
+        "stroke-width":12
+    }).attr({arc: [0, totalDeg, R]}).transform(transform).animate({arc: [realDeg, totalDeg, R]}, time, easing);
+
+    //绘制外部圆弧
+    r.path().attr("stroke", baseColor).attr({arc: [totalDeg-0.00001, totalDeg, wR]}).transform(transform);
+
+    var rotate = totalDeg * realDeg / totalDeg;
+    //圆点动画
+    var point = r.circle(origin - wR, origin, 4).attr({
+        fill:"#fff",
+        stroke:baseColor,
+        href:"http://www.baidu.com",
+        cursor:"pointer"
+    }).transform(transform)
+    .animate({"transform":["r", rotate+rotateDeg, origin, origin]},time,easing)
+
+    //绘制刻度
+    function drawMarks(){
+        var marks = r.set();
+        var markTxt = r.set();
+        var perDeg = totalDeg/(markCount-1);
+        var perNum = Math.round((totalNum-initNum)/(markCount-1));
+
+        for(var i = 0; i < markCount; ++i){
+            var scale = ["r", perDeg*i+rotateDeg, origin, origin];
+
+            var mark = r.path([["M",origin - wR, origin],["L",origin - wR + 10, origin]]).transform(scale);
+            marks.push(mark);
+
+            var txt = r.text(origin - wR, origin,perNum*i+initNum).transform(scale);
+            markTxt.push(txt);
+        }
+        marks.attr({"stroke":baseColor})    //只对已经放入集合中的元素执行此方法
+        markTxt.attr({"fill":baseColor}).rotate(-90).translate(0,-10)   //令数字和刻度线垂直
+    }
+};
+
+</script>
+</body>
+</html>
